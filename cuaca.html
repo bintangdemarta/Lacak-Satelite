@@ -1,63 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>🌍 Airport Weather Tracker</title>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <meta charset="UTF-8">
+  <title>Peta Cuaca Bandara Indonesia</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
 </head>
 <body>
-  <h2>✈️ Airport Weather Tracker</h2>
-  <p>Klik marker bandara untuk melihat cuaca realtime</p>
-  <div id="map" style="height: 600px;"></div>
-
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const API_KEY = "fe530750fa025cb705608c5ae08c094b";
+    const apiKey = "fe530750fa025cb705608c5ae08c094b";
+    const map = L.map("map").setView([-2.5, 118], 5);
 
-    // Data bandara (contoh sebagian)
-    const airports = [
-      { name: "Soekarno-Hatta Intl (CGK)", lat: -6.1256, lon: 106.6559 },
-      { name: "Ngurah Rai Intl Bali (DPS)", lat: -8.7481, lon: 115.1675 },
-      { name: "Kuala Lumpur Intl (KUL)", lat: 2.7456, lon: 101.7072 },
-      { name: "Singapore Changi (SIN)", lat: 1.3644, lon: 103.9915 },
-      { name: "Tokyo Haneda (HND)", lat: 35.5494, lon: 139.7798 },
-      { name: "Los Angeles Intl (LAX)", lat: 33.9416, lon: -118.4085 },
-      { name: "London Heathrow (LHR)", lat: 51.4700, lon: -0.4543 },
-      { name: "Dubai Intl (DXB)", lat: 25.2532, lon: 55.3657 }
-    ];
-
-    // Inisialisasi peta
-    var map = L.map('map').setView([0, 0], 2);
-
-    // Tambahkan tile OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
     }).addTo(map);
 
-    // Fungsi ambil data cuaca
-    async function getWeather(lat, lon) {
-      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-      const res = await fetch(url);
-      return await res.json();
+    // Daftar bandara besar Indonesia
+    const airports = [
+      { code: "CGK", name: "Soekarno-Hatta (Jakarta)", lat: -6.1256, lon: 106.6559 },
+      { code: "HLP", name: "Halim Perdanakusuma (Jakarta)", lat: -6.266389, lon: 106.891111 },
+      { code: "DPS", name: "Ngurah Rai (Bali)", lat: -8.7481, lon: 115.1675 },
+      { code: "SUB", name: "Juanda (Surabaya)", lat: -7.3798, lon: 112.7870 },
+      { code: "UPG", name: "Sultan Hasanuddin (Makassar)", lat: -5.0616, lon: 119.5540 },
+      { code: "KNO", name: "Kualanamu (Medan)", lat: 3.6423, lon: 98.8853 },
+      { code: "YIA", name: "Yogyakarta International", lat: -7.9053, lon: 110.0530 },
+      { code: "BPN", name: "Sepinggan (Balikpapan)", lat: -1.2683, lon: 116.8944 },
+      { code: "PDG", name: "Minangkabau (Padang)", lat: -0.7869, lon: 100.2808 },
+      { code: "PLM", name: "Sultan Mahmud Badaruddin II (Palembang)", lat: -2.8983, lon: 104.6999 },
+      { code: "MDC", name: "Sam Ratulangi (Manado)", lat: 1.5494, lon: 124.9264 },
+      { code: "BDO", name: "Husein Sastranegara (Bandung)", lat: -6.90063, lon: 107.575996 },
+      { code: "JOG", name: "Adisucipto (Yogyakarta)", lat: -7.786086, lon: 110.431435 },
+      { code: "SRG", name: "Ahmad Yani (Semarang)", lat: -6.979155, lon: 110.378549 },
+      { code: "BTJ", name: "Sultan Iskandar Muda (Banda Aceh)", lat: 5.5239, lon: 95.4203 },
+      { code: "PNK", name: "Supadio (Pontianak)", lat: -0.1507, lon: 109.4039 },
+      { code: "LOP", name: "Lombok International", lat: -8.7573, lon: 116.2767 },
+      { code: "PKU", name: "Sultan Syarif Kasim II (Pekanbaru)", lat: 0.4608, lon: 101.4445 },
+      { code: "AMQ", name: "Pattimura (Ambon)", lat: -3.7103, lon: 128.0894 },
+      { code: "DJJ", name: "Sentani (Jayapura)", lat: -2.5769, lon: 140.5164 },
+      { code: "PLW", name: "Mutiara SIS Al-Jufri (Palu)", lat: -0.9189, lon: 119.9090 },
+      { code: "KOE", name: "El Tari (Kupang)", lat: -10.1716, lon: 123.6710 },
+      { code: "SOC", name: "Adisumarmo (Solo)", lat: -7.5161, lon: 110.7570 },
+      { code: "TRK", name: "Juwata (Tarakan)", lat: 3.3267, lon: 117.5696 }
+    ];
+    const markers = {};
+
+    function windColor(speed) {
+      if (speed <= 5) return "green";
+      if (speed <= 10) return "orange";
+      return "red";
     }
 
-    // Tambahkan marker untuk tiap bandara
-    airports.forEach(airport => {
-      const marker = L.marker([airport.lat, airport.lon]).addTo(map);
+    function getWeather(airport) {
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${airport.lat}&lon=${airport.lon}&appid=${apiKey}&units=metric&lang=id`;
 
-      marker.on("click", async () => {
-        const weather = await getWeather(airport.lat, airport.lon);
-        const popupContent = `
-          <b>${airport.name}</b><br/>
-          Cuaca: ${weather.weather[0].description} <br/>
-          Suhu: ${weather.main.temp} °C <br/>
-          Kelembapan: ${weather.main.humidity}% <br/>
-          Angin: ${weather.wind.speed} m/s
-        `;
-        marker.bindPopup(popupContent).openPopup();
-      });
-    });
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const temp = data.main.temp;
+          const feels = data.main.feels_like;
+          const windSpeed = data.wind.speed;
+          const windDeg = data.wind.deg;
+          const clouds = data.clouds.all;
+          const weather = data.weather[0].description;
+          const humidity = data.main.humidity;
+          const pressure = data.main.pressure;
+          const visibility = (data.visibility / 1000).toFixed(1);
+
+          const arrowColor = windColor(windSpeed);
+
+          const arrowSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="34" height="34"
+                 style="transform: rotate(${windDeg}deg);">
+              <polygon points="25,0 35,20 25,15 15,20" fill="${arrowColor}"/>
+              <rect x="22" y="15" width="6" height="30" fill="${arrowColor}"/>
+            </svg>
+          `;
+
+          const arrowIcon = L.divIcon({
+            html: arrowSvg,
+            iconSize: [34, 34],
+            className: ""
+          });
+
+          const popupContent = `
+            <b>${airport.name}</b> (${airport.code})<br>
+            🌡️ Suhu: ${temp}°C (feels ${feels}°C)<br>
+            🌬️ Angin: ${windSpeed} m/s (${windDeg}°)<br>
+            💧 Kelembapan: ${humidity}%<br>
+            📉 Tekanan: ${pressure} hPa<br>
+            👁️ Visibility: ${visibility} km<br>
+            ☁️ Awan: ${clouds}%<br>
+            ⛅ Kondisi: ${weather}<br>
+            <small>Update: ${new Date(data.dt * 1000).toLocaleString()}</small>
+          `;
+
+          if (markers[airport.code]) {
+            markers[airport.code].setPopupContent(popupContent);
+            markers[airport.code].setIcon(arrowIcon);
+          } else {
+            const marker = L.marker([airport.lat, airport.lon], { icon: arrowIcon })
+              .addTo(map)
+              .bindPopup(popupContent);
+            markers[airport.code] = marker;
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function updateAllAirports() {
+      airports.forEach(airport => getWeather(airport));
+    }
+
+    updateAllAirports();
+    setInterval(updateAllAirports, 5000); // update tiap 10 detik
   </script>
 </body>
 </html>
