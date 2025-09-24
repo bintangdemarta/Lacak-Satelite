@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🌍 Airport Weather Tracker</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+  <h2>✈️ Airport Weather Tracker</h2>
+  <p>Klik marker bandara untuk melihat cuaca realtime</p>
+  <div id="map" style="height: 600px;"></div>
+
+  <script>
+    const API_KEY = "fe530750fa025cb705608c5ae08c094b";
+
+    // Data bandara (contoh sebagian)
+    const airports = [
+      { name: "Soekarno-Hatta Intl (CGK)", lat: -6.1256, lon: 106.6559 },
+      { name: "Ngurah Rai Intl Bali (DPS)", lat: -8.7481, lon: 115.1675 },
+      { name: "Kuala Lumpur Intl (KUL)", lat: 2.7456, lon: 101.7072 },
+      { name: "Singapore Changi (SIN)", lat: 1.3644, lon: 103.9915 },
+      { name: "Tokyo Haneda (HND)", lat: 35.5494, lon: 139.7798 },
+      { name: "Los Angeles Intl (LAX)", lat: 33.9416, lon: -118.4085 },
+      { name: "London Heathrow (LHR)", lat: 51.4700, lon: -0.4543 },
+      { name: "Dubai Intl (DXB)", lat: 25.2532, lon: 55.3657 }
+    ];
+
+    // Inisialisasi peta
+    var map = L.map('map').setView([0, 0], 2);
+
+    // Tambahkan tile OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
+
+    // Fungsi ambil data cuaca
+    async function getWeather(lat, lon) {
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+      const res = await fetch(url);
+      return await res.json();
+    }
+
+    // Tambahkan marker untuk tiap bandara
+    airports.forEach(airport => {
+      const marker = L.marker([airport.lat, airport.lon]).addTo(map);
+
+      marker.on("click", async () => {
+        const weather = await getWeather(airport.lat, airport.lon);
+        const popupContent = `
+          <b>${airport.name}</b><br/>
+          Cuaca: ${weather.weather[0].description} <br/>
+          Suhu: ${weather.main.temp} °C <br/>
+          Kelembapan: ${weather.main.humidity}% <br/>
+          Angin: ${weather.wind.speed} m/s
+        `;
+        marker.bindPopup(popupContent).openPopup();
+      });
+    });
+  </script>
+</body>
+</html>
